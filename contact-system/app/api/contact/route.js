@@ -1,36 +1,33 @@
-import pool from "@/lib/db";
+import { ContactSchema } from "@/validators/contact.validator";
+import { submitContact } from "@/services/contact.service";
 
 export async function POST(request) {
   try {
+
     const body = await request.json();
 
-    const { name, email, message } = body;
+    const validated = ContactSchema.parse(body);
 
-    const result = await pool.query(
-      `
-      INSERT INTO contacts (name, email, message)
-      VALUES ($1, $2, $3) //parameterized query to prevent SQL injection
-      RETURNING id, name, email, message, created_at
-      `,
-      [name, email, message]
-    );
+    const contact = await submitContact(validated);
 
     return Response.json(
       {
         success: true,
-        contact: result.rows[0],
+        contact
       },
       { status: 201 }
     );
+
   } catch (error) {
-    console.error("Failed to create contact:", error);
+
+    console.error(error);
 
     return Response.json(
       {
         success: false,
-        error: "Failed to create contact",
+        error: error.message
       },
-      { status: 500 }
+      { status: 400 }
     );
   }
 }
